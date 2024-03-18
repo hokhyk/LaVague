@@ -5,21 +5,40 @@ from llama_index.core import VectorStoreIndex
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core import get_response_synthesizer
 from llama_index.core import PromptTemplate
-from .defaults import DefaultLLM, DefaultEmbedder
 from .default_prompt import DEFAULT_PROMPT
 
 MAX_CHARS = 1500
 K = 3
 
+import re
+
+def extract_first_python_code(markdown_text):
+    # Pattern to match the first ```python ``` code block
+    pattern = r"```python(.*?)```"
+    
+    # Using re.DOTALL to make '.' match also newlines
+    match = re.search(pattern, markdown_text, re.DOTALL)
+    if match:
+        # Return the first matched group, which is the code inside the ```python ```
+        return match.group(1).strip()
+    else:
+        # Return None if no match is found
+        return None
+
 class ActionEngine:
-    def __init__(self, llm=None, embedding=None):
-        if (llm is None):
-            llm = DefaultLLM()
-        if (embedding is None):
-            embedding = DefaultEmbedder()
+    def __init__(self, llm, embedding,
+                 prompt_template=None, cleaning_function=None):
 
         self.llm = llm
         self.embedding = embedding
+        if not prompt_template:
+            prompt_template = DEFAULT_PROMPT
+            
+        if not cleaning_function:
+            cleaning_function = extract_first_python_code
+            
+        self.prompt_template = prompt_template
+        self.cleaning_function = cleaning_function
 
     def _get_index(self, html):
         text_list = [html]
@@ -57,10 +76,18 @@ class ActionEngine:
             response_synthesizer=response_synthesizer,
         )
 
-        prompt_template = PromptTemplate(DEFAULT_PROMPT)
+        prompt_template = PromptTemplate(self.prompt_template)
 
         query_engine.update_prompts(
             {"response_synthesizer:text_qa_template": prompt_template}
         )
 
         return query_engine
+
+    def get_action(self, query, html):
+        query_engine = self.get_query_engine(html)
+        response = query_engine.query(query)
+        source_nodes = response.get_formatted_sources(MAX_CHARS)
+        code = response.response
+        code = self.cleaning_function(code)
+        return code, source_nodes
