@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Callable, Optional, Tuple, List
 from llama_index.core import Document
 from llama_index.core.node_parser import CodeSplitter
 from llama_index.retrievers.bm25 import BM25Retriever
@@ -35,8 +35,8 @@ class ActionEngine:
             The llm that will be used the generate the python code
         embedding (`EmbedType`):
             The embedding model to encode the html page and the prompt
-        prompt (`str`):
-            The initial prompt given to the llm, later completed by chunks of the html page and the query
+        prompt_template (`str`):
+            The initial prompt_template given to the llm, later completed by chunks of the html page and the query
         cleaning_function (`Callable[[str], Optional[str]]`):
             Function to extract the python code from the llm output
         top_k (`int`):
@@ -81,7 +81,7 @@ class ActionEngine:
 
         return index
 
-    def get_query_engine(self, state):
+    def _get_query_engine(self, state):
         """
         Get the llama-index query engine
 
@@ -116,7 +116,7 @@ class ActionEngine:
 
         return query_engine
 
-    def get_action(self, query: str, html: str) -> str:
+    def get_action(self, query: str, html: str) -> Tuple[str, str]:
         """
         Generate the code from a query and an html page, only works if streaming=False
 
@@ -127,7 +127,7 @@ class ActionEngine:
         Return:
             (`str`, `str`): The generated code, and the sources which were used
         """
-        query_engine = self.get_query_engine(html)
+        query_engine = self._get_query_engine(html)
         response = query_engine.query(query)
         source_nodes = response.get_formatted_sources(
             self.max_chars_pc
@@ -135,3 +135,24 @@ class ActionEngine:
         code = response.response
         code = self.cleaning_function(code)
         return code, source_nodes
+
+import requests
+
+class RemoteActionEngine:
+    def __init__(self, url) -> None:
+        self.url = url
+        
+    def get_action(self, query: str, html: str) -> str:
+        data = {
+            "query": query,
+            "HTML": html
+        }
+        url = self.url + "/process"
+        response = requests.post(url, json=data)
+        
+        if response.status_code == 200:
+            response_data = response.json()
+            code, source_nodes = response_data['code'], response_data['retrieved_nodes']
+            return code, source_nodes
+        else:
+            raise Exception("Failed to retrieve data, status code:", response.status_code)

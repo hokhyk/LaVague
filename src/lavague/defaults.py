@@ -7,8 +7,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DEFAULT_EMBED_MODEL = "BAAI/bge-small-en-v1.5"
-DEFAULT_LOCAL_LLM = "HuggingFaceH4/zephyr-7b-gemma-v0.1"
-DEFAULT_MAX_NEW_TOKENS = 512
 
 class DefaultEmbedder(HuggingFaceEmbedding):
     def __init__(self, model_name: str = DEFAULT_EMBED_MODEL, device: str = "cuda"):
