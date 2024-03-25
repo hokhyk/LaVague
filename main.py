@@ -7,6 +7,8 @@ from lavague.defaults import DefaultLLM, DefaultEmbedder
 import os
 from llama_index.llms.azure_openai import AzureOpenAI
 
+from lavague.prompts import DEFAULT_PROMPT
+
 api_key=os.getenv("AZURE_OPENAI_KEY")
 api_version="2023-05-15"
 azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
@@ -47,3 +49,14 @@ async def process(input_data: InputData):
     code, retrieved_nodes = action_engine.get_action(query, html)
 
     return OutputData(code=code, retrieved_nodes=retrieved_nodes)
+
+@app.post("/process_direct", response_model=str)
+async def process_direct(input_data: InputData):
+    # Example processing - Replace this with your actual logic
+    query = input_data.query
+    html = input_data.HTML
+    
+    prompt = DEFAULT_PROMPT.format(context_str=html, query_str=query)
+    response = llm.complete(prompt)
+    code = response.text
+    return code

@@ -129,9 +129,8 @@ class ActionEngine:
         """
         query_engine = self._get_query_engine(html)
         response = query_engine.query(query)
-        source_nodes = response.get_formatted_sources(
-            self.max_chars_pc
-        )  # HTML sources with which the code was generated
+        source_nodes = response.source_nodes
+        source_nodes = [node.text for node in source_nodes]
         code = response.response
         code = self.cleaning_function(code)
         return code, source_nodes

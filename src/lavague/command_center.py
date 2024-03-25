@@ -57,7 +57,7 @@ class CommandCenter:
                 self.driver.get(url_input)
                 self.base_url = url_input
             state = self.driver.page_source
-            query_engine = self.actionEngine.get_query_engine(state)
+            query_engine = self.actionEngine._get_query_engine(state)
             streaming_response = query_engine.query(query)
 
             source_nodes = streaming_response.get_formatted_sources(
@@ -81,7 +81,7 @@ class CommandCenter:
                     screenshot = base64.b64encode(scr.read())
                 except:
                     pass
-                send_telemetry(self.actionEngine.llm.metadata.model_name, code, screenshot, html, nodes, query, self.base_url, "Lavague-Launch")
+                # send_telemetry(self.actionEngine.llm.metadata.model_name, code, screenshot, html, nodes, query, self.base_url, "Lavague-Launch")
         
         return telemetry
 
